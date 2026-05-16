@@ -1,1 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sakim Monitor</title>
+    <style>
+        /* 保持你喜欢的圆润和胶囊风格 */
+        body { font-family: system-ui, sans-serif; background-color: #f4f4f5; display: flex; flex-direction: column; align-items: center; padding: 40px 20px; }
+        .container { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; width: 100%; max-width: 1000px; }
+        .card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        .server-title { font-size: 1.2rem; font-weight: bold; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .status-dot { width: 12px; height: 12px; border-radius: 50%; }
+        .metric-row { display: flex; justify-content: space-between; margin: 8px 0; font-size: 0.9rem; color: #3f3f46; border-bottom: 1px dashed #e4e4e7; padding-bottom: 5px; }
+        .btn-refresh { margin-top: 30px; padding: 12px 30px; color: white; background-color: #8b5cf6; border: none; border-radius: 50px; cursor: pointer; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4); }
+    </style>
+</head>
+<body>
+    <h2>我的轻量服务器集群</h2>
+    <div class="container" id="app"></div>
+    <button class="btn-refresh" onclick="fetchData()">手动刷新</button>
 
+    <script>
+        async function fetchData() {
+            try {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+                let html = '';
+                for (const [id, stats] of Object.entries(data)) {
+                    const isOnline = (Date.now() / 1000 - stats.last_update) < 15;
+                    const dotColor = isOnline ? '#10b981' : '#ef4444';
+                    
+                    html += `
+                        <div class="card">
+                            <div class="server-title">${id} <div class="status-dot" style="background-color: ${dotColor};"></div></div>
+                            <div class="metric-row"><span>系统:</span> <strong>${stats.os}</strong></div>
+                            <div class="metric-row"><span>CPU负载:</span> <strong>${stats.load}</strong></div>
+                            <div class="metric-row"><span>内存:</span> <strong>${stats.memory.used}M / ${stats.memory.total}M</strong></div>
+                            <div class="metric-row"><span>硬盘:</span> <strong>${stats.disk.used} / ${stats.disk.total}</strong></div>
+                            <div class="metric-row"><span>网速 (↓/↑):</span> <strong>${stats.network.rx_speed_kb}K / ${stats.network.tx_speed_kb}K</strong></div>
+                            <div class="metric-row"><span>Ping(电信/联通/移动):</span> <strong>${stats.ping.telecom} / ${stats.ping.unicom} / ${stats.ping.mobile}</strong></div>
+                        </div>
+                    `;
+                }
+                document.getElementById('app').innerHTML = html;
+            } catch (err) {}
+        }
+        fetchData();
+        setInterval(fetchData, 3000);
+    </script>
+</body>
+</html>
